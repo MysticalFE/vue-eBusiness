@@ -1,0 +1,52 @@
+@baseBackground:#947A41;
+body, div, span, header, footer, nav, section, aside, article, ul, dl, dt, dd, li, a, p, h1, h2, h3, h4,h5, i, b, em,textarea, button, input, select  {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    font-style: normal;
+    text-decoration: none;
+    border: none;
+    color: #313131;
+    box-sizing: border-box;
+    font-weight: lighter;
+    font-family: 'Microsoft YaHei';
+    -webkit-tap-highlight-color:transparent;
+    &:focus {
+        outline: none;
+    }
+}
+// body{
+//     width:100%;
+//     height:100%;
+// }
+// img{
+//     width:100%;
+// }
+::-webkit-scrollbar {
+    background-color: rgba(229, 1, 1, 0);
+    width:0px;
+    height:1px;
+}
+::-webkit-input-placeholder{
+    color:#9b9b9b;
+}
+a:link{
+    -webkit-tap-highlight-color:transparent;
+    tap-highlight-color:transparent;
+    text-decoration: none;
+}
+.pa{
+    position:absolute;
+}
+.pr{
+    position:relative;
+}
+.spriteIcon {
+    background:url(../images/sprites.png) no-repeat;
+    background-size:200px 200px;
+}
+.flexCenterBox{
+    display: flex;
+    align-items:center;
+    justify-content:center;
+}
