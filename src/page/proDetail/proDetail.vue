@@ -69,7 +69,7 @@
 							<span>商品描述</span>
 							<span> > </span>
 						</section>
-						<section class="productDescHtml" v-html="proDescHtml"></section>
+						<section class="productDescHtml" v-html="proDescHtml" ref="productDescHtml"></section>
 					</section>
 					<section class="brandContent" v-if="brandInfo != null">
 						<div class="brandTitle">
@@ -124,12 +124,46 @@
 				</li>
 			</transition>
 			<transition name="slide">
-				<li v-show="selectedTabInd == 1">
-
+				<li v-show="selectedTabInd == 1" class="slideItem" style="padding-bottom: 3.5rem">
+					<section class="productDescHtml" v-html="proDescHtml" ref="productDescHtml"></section>
 				</li>
 			</transition>
 			<transition name="slide">
-				<li v-show="selectedTabInd == 2">
+				<li v-show="selectedTabInd == 2" class="slideItem reviewWrapper">
+					<section class="reviewContent">
+						<div class="reviewStar">
+							<span>综合评价</span>
+							<div class="reviewImg">
+								<img v-for="item of reviewStarList" :src="item.startImg" alt="">
+							</div>
+						</div>
+						<ul v-show="reviewList" v-load-more="getMore">
+							<li v-for="item of reviewList">
+								<div class="commentInfo">
+									<p class="userName">{{ item.NickName }}</p>
+									<div class="labelList" v-show="item.LabelList != null">
+										<div class="listLeft">
+											<span>标签</span>
+										</div>
+										<div class="listRight">
+											<span v-for="label of item.LabelList">{{ label.LabelName }}</span>
+										</div>
+									</div>
+									<p class="reviewText">{{ item.ReviewContent }}</p>
+									<ul v-show="item.ProductReviewPic != null">
+										<li v-for="itemImg of item.ProductReviewPic">
+											<img :src="itemImg.BigPictureUrl" alt="" @click="clickImg(itemImg.BigPictureUrl)">
+										</li>
+									</ul>
+									<div class="reviewData">
+										<span>{{ item.IndateTime }}</span>
+									</div>
+								</div>
+							</li>
+						</ul>
+						<div class="loading" v-if="isLoading == true && reviewList.length > 0">加载中...请稍后</div>
+						<div class="noLoading" v-if="isLoading == false">没有更多了...</div>
+					</section>
 
 				</li>
 			</transition>
@@ -152,12 +186,16 @@
 		</footer>
 		<go-back-top></go-back-top>
 		<tip-alert :showTip.sync="showTip" :tipText="tipText" :showTipBtn="showTipBtn"></tip-alert>
+		<loading :showLoading="showLoading"></loading>
+		<magnify-img :imgSrc="reviewImgSrc" v-if="showBigImg" @closeBigImg="viewImg"></magnify-img>
 	</div>
 </template>
 <script>
 	import otherHeader from '../../components/header/OtherHeader'
 	import tipAlert from '../../components/common/tipAlert'
 	import goBackTop from '../../components/goBackTop/goBackTop'
+	import Loading from '../../components/common/loading.vue'
+	import MagnifyImg from '../../components/magnifyImg/magnifyImg'
 	import { filterRepEle,carouselPlaceholder,itemImglPlaceholder,uniquePro} from '../../config/common'
 	// import { mixins} from '../../config/mixins'
 	import { mapState,mapMutations} from 'vuex'
@@ -205,6 +243,14 @@
 				tipText:'',//弹窗内容
 				showTipBtn:false,//是否显示弹窗按钮
 				changCartNum:false,
+				showLoading:true,
+				reviewScore: -1,
+				reviewStarList: [],
+				pageInfo: {},
+				reviewList: [],
+				reviewImgSrc: '',
+				showBigImg: false,
+				isLoading:true,//是否加载数据 true => 加载
 				swiperOption: {
 		          	autoplay : 3000,
 					autoplayDisableOnInteraction:false,
@@ -218,9 +264,12 @@
 			}
 		},
 		created () {
+			this.pageNumber = 1
+			this.pagesize = 10
+			this.init()
 		},
 		mounted () {
-			this.init()
+
 		},
 		computed: {
 			//详情页应显示的价格;
@@ -260,14 +309,28 @@
 					}
 				}
 				return this.originPrice;
-			}
+			},
+			// //评论星级
+			// reviewStarLiist () {
+			// 	setTimeout(() => {
+			// 		const len = this.reviewScore
+			// 		console.log(len)
+			// 		return Array.from(new Array(len),(value,index) => ({
+			// 			starIndex: index,
+			// 			startImg: '../../images/fill_star.svg'
+			// 		}))
+			// 	},20)
+			// }
 		},
 		methods: {
 			async init () {
 				this.productID = this.$route.query.productID;
 				this.customerID = sessionStorage.getItem('customerID') || '';
 				// this.cartNum = this.inputNum;
-				const getItemListStorage = JSON.parse(sessionStorage.getItem('itemList')) || [];
+				let getItemListStorage = []
+				if (sessionStorage.getItem('itemList')) {
+					getItemListStorage = JSON.parse(sessionStorage.getItem('itemList'));
+				}
 				console.log(getItemListStorage)
 				if (getItemListStorage) {
 					let cartQuantity = 0;
@@ -278,8 +341,37 @@
 				}
 				await this.getData()
 			},
+			//tab切换
 			judgeSelectedTab (ind) {
 				this.selectedTabInd = ind;
+				//当前商品评价列表
+				if (ind === 2) {
+					this.showLoading = true
+					this.getCommentData()
+				}
+			},
+			//当前商品评论
+			getCommentData() {
+				this.$http({
+					method: 'get',
+					url: '/api/UIProduct/review',
+					params: {
+						ProductID: this.productID,
+						pageNumber: this.pageNumber,
+						pagesize: this.pagesize
+					}
+				}).then(res => {
+					console.log(res)
+					if (res.data.code == 0) {
+						const resData = res.data.data
+						this.pageInfo = resData.PageInfo
+						this.reviewList = this.reviewList.concat(resData.ReviewList)
+						this.reviewScore = resData.ReviewScore
+						this.showLoading = false
+					}
+				}).catch(error => {
+					console.log(error)
+				})
 			},
 			getData () {
 				this.$http({
@@ -310,6 +402,7 @@
 						this.couponInfoList = resData.Coupon;
 						this.productInfo = resData.CustomProspecList;
 						this.adviseLiking = resData.Suggest;
+						this.showLoading = false
 						this.filterSpecItem();
 					}
 				})
@@ -451,18 +544,21 @@
 						TempID:tempID,
 						ItemList: ItemList
 					}
-				})
-				.then (res => {
+				}).then (res => {
 					console.log(res)
 					const _this = this;
 					if (res.data.code == 0) {
 						const data = res.data.data;
 						if (tempID == '' || tempID != data.TempID) {
                             tempID = data.TempID;
-                            let itemListStorage = JSON.parse(sessionStorage.getItem('itemList')) || [];
+
+                            let itemListStorage = []
+                            if (itemListStorage) {
+                            	itemListStorage = JSON.parse(sessionStorage.getItem('itemList'));
+                            }
                            	ItemList = ItemList.concat(itemListStorage)
                            	let cartInfo = Object.assign({},uniquePro(ItemList))
-                           	sessionStorage.setItem('itemList',JSON.stringify(uniquePro(ItemList)))
+                           	sessionStorage.setItem('itemList',uniquePro(ItemList))
 							_this.$store.commit('CART_INFO', cartInfo)
 							this.cartNum += this.inputNum;
 							this.showTip = true;
@@ -474,10 +570,30 @@
 						this.tipText = res.data.desc;
 						this.tipTimerOut(1300)
 					}
-				})
-				.catch (error => {
+				}).catch (error => {
 					console.log(error)
 				})
+			},
+			//滚动获取更多;
+			getMore () {
+				let curProCount = this.pageNumber * this.pagesize;
+				if(curProCount < this.pageInfo.TotalCount){
+					this.pageNumber++;
+					this.getCommentData();
+				}else{
+					this.isLoading = false;
+				}
+					// console.log(this.paramObj.page)
+			},
+			//点击放大评论图片
+			clickImg (src) {
+				console.log(src)
+				this.showBigImg = true
+				this.reviewImgSrc = src
+			},
+			//点击隐藏放大的图片
+			viewImg () {
+				this.showBigImg = false
 			},
 			//弹窗倒计时
 			tipTimerOut (timer) {
@@ -490,22 +606,36 @@
 				}
 			},
 		},
-		// watch: {
-		// 	cartNum () {
-		// 		if (!this.changCartNum) {
-		// 			this.changCartNum = true;
-		// 		}
-		// 		this.changCartNum = false;
-		// 	}
-		// },
+		watch: {
+			//评论星级
+			reviewScore(newVal) {
+				this.reviewStarList = Array.from(new Array(newVal),(value,index) => ({
+					starIndex: index,
+					startImg: require('../../images/fill_star.svg')
+				}))
+				console.log(this.reviewStarList)
+				return this.reviewStarList
+			},
+			// //返回的商品描述(有问题，待解决)
+			// proDescHtml(newVal) {
+			// 	setTimeout(() => {
+			// 		for (let item of this.$refs.productDescHtml.childNodes[0].childNodes) {
+			// 			item.style.width = '100%';
+			// 			item.style.display = 'block';
+			// 		}
+			// 	},20)
+			// }
+		},
 		components: {
 			otherHeader,
 			tipAlert,
-			goBackTop
+			goBackTop,
+			Loading,
+			MagnifyImg
 		}
 	}
 </script>
-<style lang="less" scoped>
+<style lang="less">
 	@import '../../style/common.less';
 	@fontColor:#4a4a4a;
 	@borderColor:#d7d7d7;
@@ -719,9 +849,13 @@
 					border-bottom: 1px solid @borderColor;
 					width:100%;
 					overflow: hidden;
-					img{
-						width:100%;
-						display: block;
+					/*由于是scroped属性的原因导致css仅对当前组件生效,而用v-html绑定渲染出的内容可以理解为是子组件，所以相应的css并不会被应用*/
+					p{
+						width: 100%;
+						img{
+							width:100%;
+							display: block;
+						}
 					}
 				}
 			}
@@ -731,7 +865,7 @@
 				border-top: 1px solid @borderColor;
 				.brandTitle{
 					display: flex;
-					padding-bottom:1.5rem;
+					// padding-bottom:1.5rem;
 					align-items:center;
 					justify-content:space-between;
 					.brandLeft{
@@ -875,6 +1009,107 @@
 				}
 			}
 		}
+		.reviewWrapper {
+			// position: relative;
+			// top: 0;
+			// left: 0;
+			// right: 0;
+			// bottom: 0;
+			width: 100%;
+			height: auto;
+			// overflow: auto;
+			padding-bottom: 3.5rem;
+			background: rgb(248,248,248);
+			.reviewContent {
+				background: #fff;
+				// overflow: auto;
+				.reviewStar {
+					padding: 10px;
+					.flexCenterBox;
+					justify-content: flex-start;
+					.reviewImg {
+						margin-left: 6px;
+					}
+				}
+				ul{
+					overflow: auto;
+					li {
+						min-height: 4rem;
+						border-bottom: 1px solid #e5e5e5;
+						.commentInfo {
+							padding: 10px;
+							.userName {
+								color: #848689;
+								font-size: 12px;
+								margin-bottom: 2px;
+							}
+							.labelList {
+								display: flex;
+								justify-content: flex-start;
+								.listLeft {
+									width: 36px;
+									span {
+										color: #848689;
+									}
+								}
+								.listRight {
+									display: flex;
+									flex: 1;
+									flex-wrap: wrap;
+									span {
+										background: @baseBackground;
+										color: #fff;
+										font-size: 12px;
+										line-height: 16px;
+										height: 20px;
+										padding: 2px;
+										margin: 0 5px 5px;
+										text-align: center;
+										overflow: hidden;
+										border-radius: 3px;
+									}
+								}
+							}
+							.reviewText {
+								font-size: 14px;
+								overflow: hidden;
+								margin-bottom: 5px;
+							}
+							.reviewData {
+								.flexCenterBox;
+								justify-content: flex-end;
+								span {
+									font-size: 12px;
+									color: #848689;
+								}
+							}
+							ul {
+								.flexCenterBox;
+								justify-content:flex-start;
+								flex-wrap: wrap;
+								overflow: hidden;
+								li {
+									width: 25%;
+									// height: 3.85rem;
+									overflow: hidden;
+									margin-bottom: 5px;
+									border-bottom: 0;
+									img {
+										width: 100%;
+									}
+								}
+							}
+						}
+					}
+				}
+				.loading,.noLoading{
+					height:2rem;
+					width:100%;
+					line-height: 2rem;
+					text-align: center;
+				}
+			}
+		}
 	}
 	footer{
 		width:100%;
@@ -951,39 +1186,4 @@
 	  -webkit-animation: zoomIn .5s;
 	  animation: zoomIn .5s;
 	}
-	@-webkit-keyframes zoomIn {
-	  from {
-	    opacity: 0;
-	    -webkit-transform: scale3d(.3, .3, .3);
-	    transform: scale3d(.3, .3, .3);
-	  }
-
-	  50% {
-	    opacity: 1;
-	  }
-	}
-
-	@keyframes zoomIn {
-	  from {
-	    opacity: 0;
-	    -webkit-transform: scale3d(.3, .3, .3);
-	    transform: scale3d(.3, .3, .3);
-	  }
-
-	  50% {
-	    opacity: 1;
-	  }
-	}
-
-	.zoomIn {
-	  -webkit-animation-name: zoomIn;
-	  animation-name: zoomIn;
-	}
-	@keyframes tipMove{
-       1%   { transform: scale(.5) }
-       25%  { transform: scale(1) }
-       50%  { transform: scale(1.5) }
-       50%  { transform: scale(2.5) }
-       100% { transform: scale(1) }
-    }
 </style>

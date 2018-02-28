@@ -3,6 +3,8 @@ import Vuex from 'vuex'
 import login from './modules/login'
 import cart from './modules/cart'
 import orderComfirm from './modules/orderComfirm'
+import addr from './modules/addr'
+import invoice from './modules/invoice'
 Vue.use(Vuex)
 
 export default new Vuex.Store({
@@ -10,6 +12,8 @@ export default new Vuex.Store({
     modules: {
         login,
         cart,
-        orderComfirm
+        orderComfirm,
+        addr,
+        invoice
     }
 })

@@ -56,7 +56,10 @@
 	export default {
 		data () {
 			return {
-
+				// showLoading: loading
+				selectedProInfo: {},
+				selectedCityInfo: {},
+				selectedTownInfo: {}
 			}
 		},
 		props: {
@@ -81,36 +84,45 @@
 				default: false
 			}
 		},
-		mounted() {
-
+		created() {
+			setTimeout(() => {
+				if (this.selectedProInfo.provinceName && this.selectedCityInfo.cityName && this.selectedTownInfo.townName) {
+					this.refresh()
+				}
+			},300)
 		},
 		computed: {
 
 		},
 		methods: {
+			refresh() {
+				this.$emit('refreshPvince')
+			},
 			jumpCity (el) {
 				console.log(el)
+				// this.showLoading = true
 				this.loading = true
-				const selectedProInfo = {
+				this.selectedProInfo = {
 					provinceName : el.target.dataset.value,
 					provinceID : el.target.dataset.id
 				}
-				this.$emit('getPvince',selectedProInfo)
+				this.$emit('getPvince',this.selectedProInfo)
 			},
 			jumpTown(el) {
+				// this.showLoading = true
 				this.loading = true
-				const selectedCityInfo = {
+				this.selectedCityInfo = {
 					cityName : el.target.dataset.value,
 					cityID : el.target.dataset.id
 				}
-				this.$emit('getCity',selectedCityInfo)
+				this.$emit('getCity',this.selectedCityInfo)
 			},
 			townInfo(el) {
-				const selectedTownInfo = {
+				this.selectedTownInfo = {
 					townName : el.target.dataset.value,
 					townID : el.target.dataset.id
 				}
-				this.$emit('getTown',selectedTownInfo)
+				this.$emit('getTown',this.selectedTownInfo)
 			},
 			closePop() {
 				this.$emit('closePop')

@@ -1,4 +1,5 @@
 @baseBackground:#947A41;
+@baseLinearBackground:linear-gradient(top,#DFC385,#93722A);
 body, div, span, header, footer, nav, section, aside, article, ul, dl, dt, dd, li, a, p, h1, h2, h3, h4,h5, i, b, em,textarea, button, input, select  {
     padding: 0;
     margin: 0;
@@ -6,10 +7,10 @@ body, div, span, header, footer, nav, section, aside, article, ul, dl, dt, dd, l
     font-style: normal;
     text-decoration: none;
     border: none;
-    color: #313131;
+    color: #222;
     box-sizing: border-box;
     font-weight: lighter;
-    font-family: 'Microsoft YaHei';
+    font-family: "FZLTXIHJW--GB1-0","hiragino sans gb","Helvetica Neue",Helvetica,STHeiTi,Arial;
     -webkit-tap-highlight-color:transparent;
     &:focus {
         outline: none;
@@ -49,4 +50,54 @@ a:link{
     display: flex;
     align-items:center;
     justify-content:center;
+}
+.twoLinesEllipsis(@lines: 2){
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  line-clamp: @lines;
+  -webkit-line-clamp: @lines;
+  white-space: pre-wrap;
+}
+.oneLineEllipsis {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@-webkit-keyframes zoomIn {
+  from {
+    opacity: 0;
+    -webkit-transform: scale3d(.3, .3, .3);
+    transform: scale3d(.3, .3, .3);
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    -webkit-transform: scale3d(.3, .3, .3);
+    transform: scale3d(.3, .3, .3);
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+.zoomIn {
+  -webkit-animation-name: zoomIn;
+  animation-name: zoomIn;
+}
+@keyframes tipMove{
+   1%   { transform: scale(.5) }
+   25%  { transform: scale(1) }
+   50%  { transform: scale(1.5) }
+   50%  { transform: scale(2.5) }
+   100% { transform: scale(1) }
 }

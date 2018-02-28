@@ -20,7 +20,7 @@
 							</router-link>
 							<div class="proSpec" v-if="item.Spec != ''"> {{ item.Spec }} </div>
 							<div class="proInfoPrice">
-								<span>￥{{ item.Price.toFixed(2) }} </span>
+								<span>{{ formatCurrency(item.Price) }} </span>
 								<!-- <span>×{{ item.Num }} </span> -->
 								<div class="changeProNum">
 									<span @click="numChange(item,-1)"> - </span>
@@ -57,7 +57,7 @@
 							</router-link>
 							<div class="proSpec" v-if="item.Spec != ''"> {{ item.Spec }} </div>
 							<div class="proInfoPrice">
-								<span>￥{{ item.Price.toFixed(2) }} </span>
+								<span>{{ formatCurrency(item.Price) }} </span>
 								<!-- <span>×{{ item.Num }} </span> -->
 								<div class="changeProNum">
 									<span @click="numChange(item,-1)"> - </span>
@@ -100,11 +100,12 @@
 			</section>
 			<section class="cartAccount">
 				<div class="totalMoney">
-					<span>合计:<span>￥{{ totalMoney.toFixed(2) }}</span></span>
-					<span>活动优惠:-￥{{ discountMoney.toFixed(2) }}</span>
+					<span>合计:<span>{{ formatCurrency(totalMoney) }}</span></span>
+					<span>活动优惠:{{ formatCurrency(-discountMoney) }}</span>
 				</div>
-				<div class="cartSettlement">
-					<router-link tag="span" :to="{path: 'order',query: {crossBorder: selectedTabInd}}">去结算({{ cartSelectedNum }})</router-link>
+				<div class="cartSettlement" @click="jumpOrder">
+					<!-- <router-link tag="span" :to="{path: 'order',query: {crossBorder: selectedTabInd}}">去结算({{ cartSelectedNum }})</router-link> -->
+					<span>去结算({{ cartSelectedNum }})</span>
 				</div>
 			</section>
 		</footer>
@@ -115,19 +116,19 @@
 	import otherHeader from '../../components/header/OtherHeader'
 	import tipAlert from '../../components/common/tipAlert'
 	import loading from '../../components/common/loading.vue'
-	import { itemImglPlaceholder,filterCartItemList } from '../../config/common'
+	import { itemImglPlaceholder,filterCartItemList,uniquePro,formatCurrency } from '../../config/common'
 	import { mapState,mapMutations} from 'vuex'
 	export default {
 		data () {
 			return {
 				itemImglPlaceholder:itemImglPlaceholder,
+				formatCurrency: formatCurrency,
 				resData:null,
 				cross: 0,// 0 => 非跨境
 				selectedTabInd: 0, //
 				customerID: '', //userID
 				isEditor: false, //true => 代表编辑后的状态;
 				// isReduction: 0, //0 =>
-				itemList:[],//购物车商品列表
 				crossProList:[],//跨境商品
 				noCrossProList:[],//非跨境商品
 				totalMoney: 0,//合计金额
@@ -143,7 +144,7 @@
 			}
 		},
 		created () {
-
+			this.itemList = []//购物车商品列表
 		},
 		mounted () {
 			this.init()
@@ -152,12 +153,16 @@
 
 		},
 		methods: {
+			// ...mapMutations({
+			// 	setItemList: 'CART_INFO'
+			// }),
 			async init () {
 				// this.customerID = this.$store.state.login.userID;
 				//当前页面刷新后，state的数据全部为空，待解决
 				this.showLoading = true;
 				this.customerID = sessionStorage.getItem('customerID')
 				this.getData();
+				// this.isCurAllProSelected()
 			},
 			//切换购物车类型
 			judgeSelectedTab (ind) {
@@ -167,17 +172,16 @@
 			getData () {
 				this.$http({
 					method: 'post',
-					url:'/api/Shopping/ShopCartV3',
+					url:'/api/Shopping/ShopCartV4',
 					data: {
 						CustomerID: this.customerID,
-						ItemList: this.itemList
-						// 'X-Iluxday-Authentication':'nPJv7QpgP3tkm52gLCnaNGlDk2c4pV7IbJI8yqQuhXk='
-					},
-					headers: {
-						'X-Iluxday-Authentication':'nPJv7QpgP3tkm52gLCnaNGlDk2c4pV7IbJI8yqQuhXk='
+						ItemList: this.itemList,
+						tempID: ''
 					}
-				})
-				.then(res => {
+					// headers: {
+					// 	'X-Iluxday-Authentication':'nPJv7QpgP3tkm52gLCnaNGlDk2c4pV7IbJI8yqQuhXk='
+					// }
+				}).then(res => {
 					console.log(res)
 					const resData = res.data.data;
 					if (res.data.code == 0 && resData) {
@@ -193,12 +197,12 @@
 					} else if (res.data.code == 1) {
 						this.showTip = true;
 						this.tipText = res.data.desc;
-						// this.tipTimerOut(1300)
+						this.tipTimerOut(1300)
+						this.showLoading = false
 					} else {
 						this.itemList = [];
 					}
-				})
-				.catch (error => {
+				}).catch (error => {
 					console.log(error)
 				})
 			},
@@ -224,71 +228,73 @@
 				typeof item.checked === 'undefined' ? this.$set(item,"checked",true) : item.checked = !item.checked;
 				this.showLoading = true;
 				this.refreshCart();
-				// this.isCurAllProSelected();
+				this.isCurAllProSelected();
 			},
-			//点击单选判断是否全选(有问题，待解决)
+			//点击单选判断是否全选
 			isCurAllProSelected () {
-				// let isChecked = false;
-				// this.noCrossProList.forEach((value,index) => {
-				// 	isChecked = value.checked;
-				// 	return isChecked;
-				// });
-				// (typeof isChecked === 'undefined' || isChecked === false) ? this.checkAllFlag = false : this.checkAllFlag = true;
-				// console.log(isChecked)
-				// return isChecked;
-				this.noCrossProList.forEach((item,index) => {
-					item.checked === true ? this.checkAllFlag = true : this.checkAllFlag = false;
-				})
+				let checkedInd = 0 //记录单选商品选中数量
+				switch (this.selectedTabInd) {
+					case 0:
+						this.noCrossProList.map((item,index) => {
+							if (item.checked === true) checkedInd++
+						})
+						checkedInd === this.noCrossProList.length ? this.checkAllFlag = true : this.checkAllFlag = false
+					case 1:
+						this.crossProList.forEach((item,index) => {
+							if (item.checked === true) checkedInd++
+						})
+						checkedInd === this.crossProList.length ? this.checkAllFlag = true : this.checkAllFlag = false
+				}
 			},
 			//点击全选
 			seclectedAll () {
+				const _this = this
 				this.checkAllFlag = !this.checkAllFlag;
 				if (this.selectedTabInd === 0) {
 					this.noCrossProList.forEach((item,index) => {
 						if (typeof item.checked === 'undefined') {
 							this.$set(item,"checked",this.checkAllFlag)
 							this.showLoading = true;
-							this.refreshCart();
 						} else {
-							item.checked = this.checkAllFlag;
+							item.checked = _this.checkAllFlag;
 							this.showLoading = true;
-							this.refreshCart();
 						}
 					})
+					this.refreshCart();
 				} else {
 					this.crossProList.forEach((item,index) => {
 						if (typeof item.checked === 'undefined') {
 							this.$set(item,"checked",this.checkAllFlag)
 							this.showLoading = true;
-							this.refreshCart();
 						} else {
 							item.checked = this.checkAllFlag;
 							this.showLoading = true;
-							this.refreshCart();
 						}
 					})
+					this.refreshCart();
 				}
 				this.refreshCart();
 			},
 			//数量-,+
 			numChange (item,sign) {
-				if (sign > 0) {
-					if (typeof item.checked === 'undefined') this.$set(item,"checked",true)
+				if (typeof item.checked === 'undefined') this.$set(item,"checked",true)
 					if (item.checked === false) item.checked = true
+				if (sign > 0) {
 					item.Num ++;
 					this.showLoading = true;
 					this.refreshCart()
 				} else {
 					item.Num --;
 					this.showLoading = true;
-					this.refreshCart()
 					if (item.Num < 1) {
 						item.Num = 1;
 						this.showTip = true
 						this.tipText = '至少选择一件商品';
 						this.tipTimerOut(1300)
 					}
+					this.refreshCart()
 				}
+				this.isCurAllProSelected()
 			},
 			//删除订单
 			deleteCartPro (item) {
@@ -323,30 +329,34 @@
 				this.showTip = false;
 			},
 			//刷新购物车
-			refreshCart () {
-				if (this.selectedTabInd === 0) {
-					this.setProObj(this.noCrossProList)
-				} else {
-					this.setProObj(this.crossProList)
-				}
-				if (this.itemList.length === 0) this.itemList = [];
-				this.getData();
+			async refreshCart () {
+				// if (this.selectedTabInd === 0) {
+				// 	this.setProObj(this.noCrossProList)
+				// } else {
+				// 	this.setProObj(this.crossProList)
+				// }
+				this.selectedTabInd === 0 ? this.setProObj(this.noCrossProList) : this.setProObj(this.crossProList)
+				// if (this.itemList.length === 0) this.itemList = [];
+				await this.getData();
 			},
 			//不同购物车的金额切换；
 			changeTotalMoney () {
-				if (this.selectedTabInd === 0) {
-					this.totalMoney = this.resData.ShopCart.SumAmount;
-					this.discountMoney = this.resData.ShopCart.ReductionAmout;
-					this.cartSelectedNum = this.resData.ShopCart.ShopCartSelectCount;
-				} else {
-					this.totalMoney = this.resData.ShopCart.SumKJAmount;
-					this.discountMoney = this.resData.ShopCart.KJReductionAmount;
-					this.cartSelectedNum = this.resData.ShopCart.ShopCartSelectKJCount;
+				if (this.resData.ShopCart) {
+					if (this.selectedTabInd === 0) {
+						this.totalMoney = this.resData.ShopCart.SumAmount;
+						this.discountMoney = this.resData.ShopCart.ReductionAmout;
+						this.cartSelectedNum = this.resData.ShopCart.ShopCartSelectCount;
+					} else {
+						this.totalMoney = this.resData.ShopCart.SumKJAmount;
+						this.discountMoney = this.resData.ShopCart.KJReductionAmount;
+						this.cartSelectedNum = this.resData.ShopCart.ShopCartSelectKJCount;
+					}
 				}
 			},
 			//设置itemList
 			setProObj (list) {
 				let proObj = {};
+				let arr = []
 				list.forEach((item,index) => {
 					if (item.checked) {
 						proObj = {
@@ -354,12 +364,46 @@
 							ID: item.ProductItemID,
 							ReductionID: item.ReductionID
 						};
-						this.itemList.push(proObj);
-						console.log(this.itemList)
+						arr.push(proObj);
+						// console.log(this.itemList)
 					}
 				})
-				this.$store.commit('CART_INFO', this.itemList)
-				// this.itemList = filterCartItemList(this.itemList);
+				arr.length > 0 ? this.itemList = arr : this.itemList = '[]';
+				// this.itemList = uniquePro(this.itemList);
+				const cloneItemList = this.itemList.slice(0)//对itemList深拷贝,避免直接对state状态值进行操作
+				// console.log(cloneItemList)
+				this.$store.commit('CART_INFO', cloneItemList)
+			},
+			//跳转order页面
+			jumpOrder() {
+				let allCheck = false;
+				if (this.selectedTabInd == 0) {
+					this.noCrossProList.forEach ((item,index) => {
+						if (item.checked) {
+							allCheck = true;
+							return allCheck
+						} else {
+							return;
+						}
+					});
+				} else {
+					this.crossProList.forEach ((item,index) => {
+						if (item.checked) {
+							allCheck = true;
+							return allCheck
+						} else {
+							return;
+						}
+					});
+				}
+				if (allCheck) {
+					this.$router.push({path: '/order',query: {crossBorder: this.selectedTabInd}})
+					sessionStorage.setItem('crossBorder',this.selectedTabInd)
+				} else {
+					this.showTip = true
+					this.tipText = '您当前购物车内未加入任何商品';
+					this.tipTimerOut(1500)
+				}
 			},
 			//弹窗倒计时
 			tipTimerOut (timer) {
@@ -395,10 +439,10 @@
 	}
 	.headerTop{
 		background:rgba(191,191,191,0.9);
-		// position: fixed;
-		// top:0;
-		// left:0;
-		// z-index: 100;
+		position: fixed;
+		top:0;
+		left:0;
+		z-index: 100;
 		.proText{
 			width:50%;
 			display: inline-block;
@@ -472,7 +516,7 @@
 							}
 							.changeProNum {
 								display: flex;
-								position: fixed;
+								position: absolute;
 								right:5%;
 								margin-top: -5px;
 								border: 1px solid #d7d7d7;

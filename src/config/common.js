@@ -31,44 +31,77 @@ export const trimLastString = s => {
     return data;
 }*/
 export const filterRepEle = data => {
-	let uniqueData = data.filter((ele,index,_self) => {
-		return _self.indexOf(ele) == index;
+	let uniqueData = data.filter((el,index,current) => {
+		return current.indexOf(el) == index;
 	})
 	return uniqueData;
 }
 /**
  * 合并ID相同的商品数量
  */
- export const uniquePro = data => {
-     data = data || [];
-     let proItem = {};
-     let proItemList = [];
-     data.map(function (obj, i) {
-         if (typeof (proItem[obj.ID]) == 'undefined') {
-             proItem[obj.ID] = 0;
-             proItemList.push({ "Quantity": obj.Quantity, "ID": obj.ID })
-         } else {
-             proItemList.map(function (item, i) {
-                 if (item.ID == obj.ID) {
-                     item.Quantity += obj.Quantity
-                 }
-             });
-         }
-     });
-     return proItemList;
- }
+export const uniquePro = data => {
+    data = data || [];
+    let proItem = {};
+    let proItemList = [];
+    data.map((obj, i) => {
+        if (typeof (proItem[obj.ID]) == 'undefined') {
+            proItem[obj.ID] = 0;
+            proItemList.push({ "Quantity": obj.Quantity, "ID": obj.ID })
+        } else {
+            proItemList.map((item, i) => {
+                if (item.ID == obj.ID) {
+                    item.Quantity += obj.Quantity
+                }
+            });
+        }
+    });
+    return proItemList;
+}
 /**
- *
+ *处理加入购物车的商品
  */
 export const filterCartItemList = data => {
-    data = data || [];
-    let itemListObj = {};
-    let itemList =[];
-    for (let index in data) {
-        itemList[':'+data[index].ID + ':' + data[index].Quantity + ':'+ data[index].ReductionID] = data[index];
-    }
-    return itemList;
+    data = data || []
+
 }
+/**
+ * 获取url参数
+ */
+export const getUrlParams = url => {
+    let paramObj = {}
+    if (url.indexOf('?') != -1) {
+        const paramStr = url.substr(1)
+        const paramArr = paramStr.split('&')
+        for (let i = 0; i < paramArr.length; i++) {
+            paramObj[paramArr[i].split('=')[0]] = paramObj[paramArr[i].split('=')[1]]
+        }
+    } else {
+        return paramObj
+    }
+    return paramObj
+}
+/**
+ * 格式化金额
+ */
+export const formatCurrency = val => {
+    if (val != undefined) {
+        let num = val.toString().replace(/\$|\,/g, '');
+        if (isNaN(val)) val = 0;
+        const judgePlusOrMinus = (num == (num = Math.abs(num)));
+        let plusOrMinus = judgePlusOrMinus == true ? '' : '﹣'
+        if (!RegExp(/\./g).test(num)) {
+            return (plusOrMinus + '￥' + Number(num).toFixed(2))
+        } else {
+            let numArr = String(num).split('.')
+            if (numArr[1].length == 1) {
+                return (plusOrMinus + '￥' + num + '0')
+            } else if (numArr[1].length == 2) {
+                return (plusOrMinus + '￥' + num)
+            }
+        }
+    }
+}
+
 /**
  * 轮播占位图；
  */

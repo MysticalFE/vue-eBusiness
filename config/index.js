@@ -30,14 +30,16 @@ module.exports = {
     //
     proxyTable: {
         '/api':{
-            target:'xxx',
+            target:'http://10.10.0.101:91',//测试环境
+            // target:'http://app.iluxday.com',//生产环境
             changeOrigin:true,
             pathRewrite:{
                 '^/api':''
             }
         },
         '/imgCodeapi':{
-            target:'xxx',
+            target:'http://10.10.0.101:90',//测试环境
+            // target:'http://www.iluxday.com',//生产环境
             changeOrigin:true,
             pathRewrite:{
                 '^/imgCodeapi':''

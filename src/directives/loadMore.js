@@ -7,7 +7,7 @@ export const loadMore = Vue.directive('loadMore',{
 	bind (el,binding) {
 		window.addEventListener('scroll',() => {
 			if(document.body.scrollTop + window.innerHeight >= el.clientHeight){
-				// console.log(binding.arg)
+				// console.log(el)
 				// binding.arg = true;
 				binding.value()
 			}

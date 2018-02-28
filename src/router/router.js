@@ -9,6 +9,7 @@ const home = r => require.ensure([], () => r(require('../page/home/home.vue')), 
 const promDisProList = r => require.ensure([], () => r(require('../page/promDisProList/promDisProList.vue')), 'promDisProList')
 const search = r => require.ensure([], () => r(require('../page/search/search.vue')), 'search')
 const group = r => require.ensure([], () => r(require('../page/group/group.vue')), 'group')
+const groupDetail = r => require.ensure([], () => r(require('../page/group/children/groupDetail.vue')), 'groupDetail')
 const globleGoods = r => require.ensure([], () => r(require('../page/globleGoods/globleGoods.vue')), 'globleGoods')
 const crossBorderKnow = r => require.ensure([], () => r(require('../page/crossBorderKnow/crossBorderKnow.vue')), 'crossBorderKnow')
 const inviteRrturnMoney = r => require.ensure([], () => r(require('../page/inviteRM/inviteRrturnMoney.vue')), 'inviteRrturnMoney')
@@ -111,7 +112,11 @@ export default new VueRouter({
 				//拼团
 				{
 					path:'/group',
-					component:group
+					component:group,
+					children: [{
+						path: ':id',
+						component: groupDetail
+					}]
 				},
 				//全球好货
 				{

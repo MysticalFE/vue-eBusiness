@@ -1,9 +1,7 @@
 <template transtion="fade">
 	<div id="home">
 		<!-- 头部搜索 -->
-		<searchHeader>
-
-		</searchHeader>
+		<searchHeader :customerID="customerID"></searchHeader>
 		<!-- 顶部banner -->
 		<div class="contentWrap">
 			<swiper class="swiper-container" :options=" swiperOption ">
@@ -63,7 +61,7 @@
 						<li v-for=" item of PromDiscountList ">
 							<router-link :to="{path:'proDetail',query:{ productID: item.ProductID}}">
 								<div class="homeActivityShoppingTitle">
-									<img :src=" item.Picture " alt="" @error="itemImglPlaceholder($event.target)">
+									<img v-lazy=" item.Picture " alt="" @error="itemImglPlaceholder($event.target)">
 								</div>
 								<div class="homeActivityShoppingDesc">
 									<p class="homeActivityShoppingDesc">
@@ -89,17 +87,17 @@
 				<div class="homeActivityItem" v-for="(item,index) of homeActivityList" v-if="item.Type== 1">
 					<div class="homeActivityBanner">
 						<a :href="item.ActivityURL" v-if="item.ActivityURL != null && item.ActivityURL.indexOf('http://') >= 0">
-							<img :src=" item.BannerURL" alt="" @error="waterFallPlaceholder($event.target)">
+							<img v-lazy=" item.BannerURL" alt="" @error="waterFallPlaceholder($event.target)">
 						</a>
 						<router-link :to="{path:'activity',query:{ADActivityID: item.ActivityURL,HomeActivityID: item.HomeActivityID}}" v-else>
-							<img :src=" item.BannerURL" alt="" @error="waterFallPlaceholder($event.target)">
+							<img v-lazy=" item.BannerURL" alt="" @error="waterFallPlaceholder($event.target)">
 						</router-link>
 					</div>
 					<ul class="homeActivityShoppingList">
 						<li v-for=" homeActivityShopping of item.HomeActivityProduct ">
 							<router-link :to="{path:'proDetail',query:{productID: homeActivityShopping.ProductID }}">
 								<div class="homeActivityShoppingTitle">
-									<img :src=" homeActivityShopping.ImageUrl " alt="" @error="itemImglPlaceholder($event.target)">
+									<img v-lazy=" homeActivityShopping.ImageUrl " alt="" @error="itemImglPlaceholder($event.target)">
 								</div>
 								<div class="homeActivityShoppingDesc">
 									<p class="homeActivityShoppingDesc">
@@ -167,6 +165,7 @@
 	import loading from '../../components/common/loading.vue'
 	import goBackTop from '../../components/goBackTop/goBackTop'
 	import { waterFallPlaceholder,carouselPlaceholder,itemImglPlaceholder} from '../../config/common'
+	import { homeData } from '../../config/api/getData'
 	export default {
 		data () {
 			return {
@@ -183,6 +182,7 @@
 				hours : 0,
 			    minutes : 0,
 			    seconds : 0,
+			    customerID: '',
 				swiperOption: {
 		          	autoplay : 2000,
 					autoplayDisableOnInteraction:false,
@@ -197,14 +197,12 @@
 		},
 		created () {
 			this.getPageData();
+			this.customerID = sessionStorage.getItem('customerID') || ''
 		},
 		methods : {
-			getPageData () {
-				this.$http({
-					method: 'get',
-					url: '/api/RestHome/HomeActivity'
-				})
-				.then( res => {
+			async getPageData () {
+				const res = await homeData()
+				if (res.data.code === 0) {
 					this.homePageData = res.data.data;
 					this.bannerImgList = this.homePageData.BannerList;
 					this.ADbanner = this.homePageData.ADBanner;
@@ -213,10 +211,7 @@
 					// console.log(res)
 					this.downTimer(this.PromDiscountList);
 					this.showLoading = false;
-				})
-				.catch(error => {
-					console.error(error)
-				})
+				}
 			},
 			downTimer (PromDiscountList) {
 				if(PromDiscountList.length > 0){
@@ -297,6 +292,9 @@
 	.homeActivityBanner img{
 		width:100%;
 	}
+	.homeActivity {
+		padding-bottom: 3.5rem;
+	}
 	.homeActivityShoppingList{
 		display: flex;
 		display: -webkit-box;
@@ -311,7 +309,7 @@
 			.homeActivityShoppingDesc {
 				.homeActivityShoppingDesc{
 				    height: 32px;
-				    line-height: 15px;
+				    line-height: 16px;
 				    margin-top: 22px;
 				    display: -webkit-box;
 				    -webkit-line-clamp: 2;

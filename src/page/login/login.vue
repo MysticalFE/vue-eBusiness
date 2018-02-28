@@ -48,6 +48,7 @@
 <script>
 	import OtherHeader from '../../components/header/OtherHeader'
 	import tipAlert from '../../components/common/tipAlert'
+	import { login,dynamiclogin,sendSMS } from '../../config/api/getData'
 	import { mapState,mapMutations} from 'vuex'
 	export default {
 		data () {
@@ -79,7 +80,7 @@
 			changePassWordType(){
                 this.showPassword = !this.showPassword;
             },
-			loginIn () {
+			async loginIn () {
 				if(this.isChecked == 0){
 					if (this.userName == '') {
 						this.showTip = true;
@@ -93,28 +94,23 @@
 						this.tipTimerOut(1300);
 		                return;
 		            }
-					this.$http({
-						method: 'post',
-						url:'/api/login/login',
-						params:{
+					const params = {
 							name:this.userName,
 							password:this.userPassword
 						}
-					})
-					.then(res => {
-						if(res.data.code == 0){
-							this.customerInfo = res;
-							this.$store.commit('USER_LOGININ', this.customerInfo)
-							//此一步是为了避免首次点击登陆,store内的数据没有被复制的问题(也可以在actions里异步处理数据)
-							this.showTip = true;
-							this.tipText = "登入成功";
-							this.tipTimerOut(1300);
-						} else {
-							this.showTip = true;
-							this.tipText = res.data.desc;
-							// this.tipTimerOut(1300);
-						}
-					})
+					const res = await login(params)
+					if (res.data.code === 0) {
+						this.customerInfo = res;
+						this.$store.commit('USER_LOGININ', this.customerInfo)
+						//此一步是为了避免首次点击登陆,store内的数据没有被复制的问题(也可以在actions里异步处理数据)
+						this.showTip = true;
+						this.tipText = "登入成功";
+						this.tipTimerOut(1300);
+					} else {
+						this.showTip = true;
+						this.tipText = res.data.desc;
+						this.tipTimerOut(1300);
+					}
 					// this.USER_LOGININ(this.customerInfo);
 				} else {
 					if (this.userMobile == '') {
@@ -135,53 +131,40 @@
 						this.tipTimerOut(1300);
 						return;
 					}
-					this.$http({
-						method: 'post',
-						url:'/api/login/dynamiclogin',
-						params:{
+					const params = {
 							phonenumber:this.userMobile,
 							password:this.dynamicPassword
 						}
-					})
-					.then(res => {
-						console.log(res)
-						if(res.data.code == 0){
-							this.customerInfo = res;
-							this.$store.commit('USER_LOGININ', this.customerInfo)
-							//此一步是为了避免首次点击登陆,store内的数据没有被复制的问题(也可以在actions里异步处理数据)
-							this.showTip = true;
-							this.tipText = "登入成功";
-							this.tipTimerOut(1300);
-						} else {
-							this.showTip = true;
-							this.tipText = res.data.desc;
-							this.tipTimerOut(1300);
-						}
-					})
-				}
-
-			},
-			//发送验证码
-			sendSMSCode (){
-				this.$http({
-					method: 'post',
-					url:'/api/System/SendSMS',
-					params:{
-						Mobile:this.userMobile,
-						Type:5
-					}
-				})
-				.then(res => {
-					if(res.data.code == 0){
-						this.isGetSMSCode = false;
-						this.sendCodeTimer = setInterval(this.sendSMSCodeTimer,1000);
-					}else{
+					const res = await dynamiclogin(params)
+					if (res.data.code === 0) {
+						this.customerInfo = res;
+						this.$store.commit('USER_LOGININ', this.customerInfo)
+						//此一步是为了避免首次点击登陆,store内的数据没有被复制的问题(也可以在actions里异步处理数据)
+						this.showTip = true;
+						this.tipText = "登入成功";
+						this.tipTimerOut(1300);
+					} else {
 						this.showTip = true;
 						this.tipText = res.data.desc;
 						this.tipTimerOut(1300);
 					}
-					console.log(res)
-				})
+				}
+			},
+			//发送验证码
+			async sendSMSCode (){
+				const params = {
+					Mobile:this.userMobile,
+					Type:5
+				}
+				const res = await sendSMS(params)
+				if (res.data.code === 0) {
+					this.isGetSMSCode = false;
+					this.sendCodeTimer = setInterval(this.sendSMSCodeTimer,1000);
+				} else {
+					this.showTip = true;
+					this.tipText = res.data.desc;
+					this.tipTimerOut(1300);
+				}
 			},
 			//验证码倒计时
 			sendSMSCodeTimer () {
@@ -199,8 +182,10 @@
 					this.timer = setTimeout( () => {
 						this.showTip = false;
 						if(this.customerInfo.data.code == 0){
-							console.log(this.$router)
+							// console.log(this.$router)
 							this.$router.go(-1)//此处暂时先这样(有问题的)
+						} else {
+							clearTimeout(this.timer)
 						}
 					},timer)
 				} else {

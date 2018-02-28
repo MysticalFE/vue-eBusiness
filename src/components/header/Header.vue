@@ -6,13 +6,22 @@
 				<input type="text" name="" autocomplete="off" @focus="jumpSearchPage">
 			</form>
 		</div>
-		<div class="search-login">
+		<div class="search-login" v-if="customerID == ''">
 			<span class="login-icon" @click="jumpLoginPage"> 登录 </span>
+		</div>
+		<div class="search-login" v-else>
+			<span class="alreadyLogin" @click="jumpMyCenter"></span>
 		</div>
 	</header>
 </template>
 <script>
 	export default {
+		props: {
+			customerID: {
+				type: String,
+				default: ''
+			}
+		},
 		data () {
 			return {
 
@@ -24,6 +33,9 @@
 			},
 			jumpLoginPage () {
 				this.$router.push('login')
+			},
+			jumpMyCenter() {
+				this.$router.push('myCenter')
 			}
 		}
 	}
@@ -80,6 +92,12 @@
 				font-size: 1rem;
 				color:#fff;
 			    margin-right:8px;
+			}
+			.alreadyLogin {
+				background: url(../../images/headPic.svg) no-repeat;
+				background-size: cover;
+				width: 20px;
+				height: 20px;
 			}
 		}
 	}

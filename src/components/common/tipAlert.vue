@@ -115,7 +115,7 @@
 	}
 	@keyframes tipMove{
        0%   { transform: scale(1) }
-       35%  { transform: scale(.8) }
+       35%  { transform: scale(.5) }
        70%  { transform: scale(1.1) }
        100% { transform: scale(1) }
     }
